@@ -1571,22 +1571,21 @@ async def upload_resume(file: UploadFile = FastFile(...)):
     filename = file.filename or ""
     ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
 
-    if ext == "pdf":
-        # Try pdfminer if available, else return base64 for client-side note
+if ext == "pdf":
         try:
-            from pdfminer.high_level import extract_text as pdf_extract
+            import fitz
             import io
-            text = pdf_extract(io.BytesIO(content))
+            doc = fitz.open(stream=io.BytesIO(content), filetype="pdf")
+            text = "\n".join(page.get_text() for page in doc)
             return {"text": text.strip(), "filename": filename}
         except ImportError:
-            # pdfminer not installed — return raw text attempt
             try:
-                text = content.decode("utf-8", errors="ignore")
-                # Strip binary garbage, keep printable lines
-                lines = [l for l in text.splitlines() if len([c for c in l if c.isprintable()]) > len(l) * 0.6]
-                return {"text": "\n".join(lines).strip(), "filename": filename}
+                from pdfminer.high_level import extract_text as pdf_extract
+                import io
+                text = pdf_extract(io.BytesIO(content))
+                return {"text": text.strip(), "filename": filename}
             except Exception as e:
-                raise HTTPException(400, f"Could not read PDF: {e}. Install pdfminer: pip install pdfminer.six")
+                raise HTTPException(400, f"Could not read PDF: {e}")
     elif ext in ("txt", "md"):
         try:
             text = content.decode("utf-8", errors="ignore")
