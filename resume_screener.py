@@ -36,7 +36,7 @@ if not API_KEY:
     print("  ║   4. Copy the key and paste it below        ║")
     print("  ╚══════════════════════════════════════════════╝")
     print()
-    API_KEY = input("GROQ_API_KEY: ").strip()
+    API_KEY = input("  Paste your Groq API key here: ").strip()
     if not API_KEY:
         print("\n❌  No key entered. Exiting.\n")
         sys.exit(1)
@@ -1571,21 +1571,15 @@ async def upload_resume(file: UploadFile = FastFile(...)):
     filename = file.filename or ""
     ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
 
-if ext == "pdf":
+    if ext == "pdf":
         try:
             import fitz
             import io
             doc = fitz.open(stream=io.BytesIO(content), filetype="pdf")
             text = "\n".join(page.get_text() for page in doc)
             return {"text": text.strip(), "filename": filename}
-        except ImportError:
-            try:
-                from pdfminer.high_level import extract_text as pdf_extract
-                import io
-                text = pdf_extract(io.BytesIO(content))
-                return {"text": text.strip(), "filename": filename}
-            except Exception as e:
-                raise HTTPException(400, f"Could not read PDF: {e}")
+        except Exception as e:
+            raise HTTPException(400, f"PDF error: {e}")
     elif ext in ("txt", "md"):
         try:
             text = content.decode("utf-8", errors="ignore")
